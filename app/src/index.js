@@ -18,8 +18,11 @@ app.get('/health', (req, res) => {
 // tasks API
 app.use('/tasks', tasksRouter);
 
-app.listen(PORT, () => {
-  console.log(`Taskboard backend listening on port ${PORT}`);
-});
+// csak akkor indítunk szervert, ha "normálisan" fut a file
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Taskboard backend listening on port ${PORT}`);
+  });
+}
 
-module.exports = app; // tesztekhez kell majd
+module.exports = app; // <- EZ kell a teszthez
