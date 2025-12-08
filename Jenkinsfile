@@ -2,17 +2,13 @@ pipeline {
     agent any
 
     environment {
-        // Docker image név + tag
-        IMAGE_NAME   = "taskboard-backend"
-        IMAGE_TAG    = "1.0.${env.BUILD_NUMBER}"
+        IMAGE_NAME = "taskboard-backend"
+        IMAGE_TAG  = "1.0.${env.BUILD_NUMBER}"
         DOCKER_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
-
-        // Kubernetes manifestek helye a repóban
-        K8S_DIR      = "deploy/kubernetes"
+        K8S_DIR = "deploy/kubernetes"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -22,7 +18,6 @@ pipeline {
         stage('Install dependencies') {
             steps {
                 dir('app') {
-                    // függőségek felrakása
                     sh 'npm ci'
                 }
             }
@@ -31,43 +26,35 @@ pipeline {
         stage('Unit tests') {
             steps {
                 dir('app') {
-                    // Jest tesztek futtatása
                     sh 'npm test'
                 }
             }
         }
 
-        stage('Build Docker image') {
+        stage('Build Docker image (doc only)') {
             steps {
-                // backend image build az app mappából
-                sh "docker build -t ${DOCKER_IMAGE} app"
+                echo "Itt építenénk a Docker image-et:"
+                echo "  docker build -t ${DOCKER_IMAGE} app"
             }
         }
 
-        stage('Load image into Minikube') {
+        stage('Load image into Minikube (doc only)') {
             steps {
-                // a lokális Docker image betöltése a Minikube clusterbe
-                sh "minikube image load ${DOCKER_IMAGE}"
+                echo "Itt töltenénk be az image-et Minikube-ba:"
+                echo "  minikube image load ${DOCKER_IMAGE}"
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Kubernetes (doc only)') {
             steps {
-                // manifestek alkalmazása
-                sh "kubectl apply -f ${K8S_DIR}/deployment.yaml"
-                sh "kubectl apply -f ${K8S_DIR}/services.yaml"
-
-                // opcionális: rollout restart, hogy biztosan az új image fusson
-                sh "kubectl rollout restart deployment/taskboard-backend"
-                sh "kubectl rollout status deployment/taskboard-backend"
+                echo "Itt futtatnánk a deployt:"
+                echo "  kubectl apply -f ${K8S_DIR}/deployment.yaml"
+                echo "  kubectl apply -f ${K8S_DIR}/services.yaml"
             }
         }
     }
 
     post {
-        success {
-            echo "Deployment sikeres: ${DOCKER_IMAGE}"
-        }
         failure {
             echo "Build vagy deploy hiba – nézd meg a pipeline logot."
         }
