@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskboard-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskboard-backend
+  template:
+    metadata:
+      labels:
+        app: taskboard-backend
+    spec:
+      containers:
+        - name: taskboard-backend
+          image: taskboard-backend:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
