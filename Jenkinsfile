@@ -1,53 +1,67 @@
 pipeline {
-  agent {
-    docker {
-      image 'node:20'
-      args '-u root'
-    }
-  }
+    agent any
 
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
+    environment {
+        IMAGE_NAME  = 'taskboard-backend'
+        IMAGE_TAG   = '1.0.0'
+        DOCKER_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+        K8S_DIR     = 'deploy/kubernetes'
     }
 
-    stage('Install dependencies') {
-      steps {
-        dir('app') {
-          sh 'npm ci'
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
-    }
 
-    stage('Unit tests') {
-      steps {
-        dir('app') {
-          sh 'npm test'
+        stage('Install dependencies') {
+            steps {
+                dir('app') {
+                    sh 'npm ci'
+                }
+            }
         }
-      }
+
+        stage('Unit tests') {
+            steps {
+                dir('app') {
+                    sh 'npm test'
+                }
+            }
+        }
+
+        // Innentől „doksi” jellegű lépések – csak kiírjuk, mit kellene futtatni
+        stage('Build Docker image (doc only)') {
+            steps {
+                echo "Helyi gépen a Docker build parancs:"
+                echo "  docker build -t ${DOCKER_IMAGE} app"
+            }
+        }
+
+        stage('Load image into Minikube (doc only)') {
+            steps {
+                echo "Minikube image betöltés parancs:"
+                echo "  minikube image load ${DOCKER_IMAGE}"
+            }
+        }
+
+        stage('Deploy to Kubernetes (doc only)') {
+            steps {
+                echo "Kubernetes deploy parancsok:"
+                echo "  kubectl apply -f ${K8S_DIR}/deployment.yaml"
+                echo "  kubectl apply -f ${K8S_DIR}/services.yaml"
+            }
+        }
     }
 
-    stage('Build Docker image (doc only)') {
-      steps {
-        echo 'Docker build Jenkinsből nem kötelező, README dokumentálja'
-      }
+    post {
+        success {
+            echo 'CI pipeline OK – függőségek felmentek, tesztek lefutottak.'
+        }
+        failure {
+            echo 'Build vagy deploy hiba – nézd meg a pipeline logot.'
+        }
     }
-
-    stage('Deploy to Kubernetes (doc only)') {
-      steps {
-        echo 'Kubernetes deploy manuálisan történik Minikube-ban'
-      }
-    }
-  }
-
-  post {
-    failure {
-      echo 'CI hiba – teszt vagy install nem sikerült'
-    }
-    success {
-      echo 'CI sikeres – kód buildelhető és tesztelt'
-    }
-  }
 }
