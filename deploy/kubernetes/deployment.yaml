@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: taskboard-backend
+  labels:
+    app: taskboard-backend
 spec:
   replicas: 1
   selector:
@@ -11,10 +13,14 @@ spec:
     metadata:
       labels:
         app: taskboard-backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: taskboard-backend
-          image: taskboard-backend:1.0.0
+          image: taskboard-backend:1.0.5
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
