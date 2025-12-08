@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: taskboard-backend
-          image: taskboard-backend:1.0.5
+          image: taskboard-backend:1.0.0
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
