@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME  = 'taskboard-backend'
-        IMAGE_TAG   = '1.0.0'
+        IMAGE_NAME   = 'taskboard-backend'
+        IMAGE_TAG    = '1.0.0'
         DOCKER_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
-        K8S_DIR     = 'deploy/kubernetes'
+        K8S_DIR      = 'deploy/kubernetes'
     }
 
     stages {
@@ -32,36 +32,61 @@ pipeline {
             }
         }
 
-        // Innentől „doksi” jellegű lépések – csak kiírjuk, mit kellene futtatni
+        // Dokumentáció jellegű lépések
         stage('Build Docker image (doc only)') {
             steps {
-                echo "Helyi gépen a Docker build parancs:"
-                echo "  docker build -t ${DOCKER_IMAGE} app"
+                echo "Helyi Docker build:"
+                echo "docker build -t ${DOCKER_IMAGE} app"
             }
         }
 
         stage('Load image into Minikube (doc only)') {
             steps {
-                echo "Minikube image betöltés parancs:"
-                echo "  minikube image load ${DOCKER_IMAGE}"
+                echo "Minikube image load:"
+                echo "minikube image load ${DOCKER_IMAGE}"
             }
         }
 
         stage('Deploy to Kubernetes (doc only)') {
             steps {
-                echo "Kubernetes deploy parancsok:"
-                echo "  kubectl apply -f ${K8S_DIR}/deployment.yaml"
-                echo "  kubectl apply -f ${K8S_DIR}/services.yaml"
+                echo "Kubernetes deploy:"
+                echo "kubectl apply -f ${K8S_DIR}/deployment.yaml"
+                echo "kubectl apply -f ${K8S_DIR}/services.yaml"
             }
         }
     }
 
     post {
         success {
-            echo 'CI pipeline OK – függőségek felmentek, tesztek lefutottak.'
+            emailext(
+                to: 'teszt@example.com',
+                subject: '✅ Taskboard CI – SIKERES BUILD',
+                body: """A Jenkins pipeline sikeresen lefutott.
+
+Projekt: ${env.JOB_NAME}
+Build szám: ${env.BUILD_NUMBER}
+Állapot: SIKERES
+
+Build URL:
+${env.BUILD_URL}
+"""
+            )
         }
+
         failure {
-            echo 'Build vagy deploy hiba – nézd meg a pipeline logot.'
+            emailext(
+                to: 'teszt@example.com',
+                subject: 'Taskboard CI – HIBÁS BUILD',
+                body: """A Jenkins pipeline hibával leállt.
+
+Projekt: ${env.JOB_NAME}
+Build szám: ${env.BUILD_NUMBER}
+Állapot: HIBÁS
+
+Részletek:
+${env.BUILD_URL}
+"""
+            )
         }
     }
 }
