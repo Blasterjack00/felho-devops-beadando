@@ -60,7 +60,7 @@ pipeline {
         success {
             emailext(
                 to: 'teszt@example.com',
-                subject: '✅ Taskboard CI – SIKERES BUILD',
+                subject: 'Taskboard CI – SIKERES BUILD',
                 body: """A Jenkins pipeline sikeresen lefutott.
 
 Projekt: ${env.JOB_NAME}
