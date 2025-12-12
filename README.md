@@ -1,298 +1,170 @@
 # Felhő és DevOps beadandó – TaskBoard backend
 
-Ez a repository a **Felhő és DevOps alapok** tantárgy beadandó feladatához készült.  
-A projekt célja egy egyszerű Node.js alapú REST backend alkalmazás létrehozása,
-majd annak **konténerizálása Dockerrel**, illetve **felkészítése Kubernetes
-környezetben történő futtatásra**.
+Ez a projekt egy egyszerű Node.js alapú backend alkalmazás köré épített, CI/CD és DevOps megoldás.
 
-A hangsúly nem az alkalmazás funkcionalitásán, hanem a **DevOps eszközök,
-folyamatok és alapelvek gyakorlati alkalmazásán** van.
-
----
-
-## Fejlesztési környezet előkészítése
-
-A fejlesztés megkezdése előtt a nem szükséges Docker image-ek és konténerek
-eltávolításra kerültek, a környezet tisztaságának biztosítása érdekében.
-
-Ennek célja:
-- a portütközések elkerülése,
-- az átlátható Docker környezet,
-- a hibakeresés megkönnyítése.
-
----
+A megoldás lokális környezetben (Docker, Jenkins, Minikube) futtatható, és demonstrálja az automatizált buildelést, tesztelést, konténerizálást, Kubernetes deploymentet, monitorozást és értesítést.
 
 ## Projekt felépítése
 
+felho-devops-beadando/
+├── app/                         # Node.js backend alkalmazás
+│   ├── __test__/               # Jest egységtesztek
+│   ├── index.js                # Alkalmazás belépési pont
+│   ├── package.json
+│   └── Dockerfile              # Backend Docker image
+│
+├── deploy/
+│   ├── kubernetes/             # Kubernetes erőforrások
+│   │   ├── deployment.yaml
+│   │   └── services.yaml
+│   │
+│   ├── monitoring/             # Prometheus konfiguráció
+│   │   ├── prometheus-config.yaml
+│   │   ├── prometheus-deployment.yaml
+│   │   └── prometheus-service.yaml
+│   │
+│   └── nginx/                  # NGINX reverse proxy
+│       ├── Dockerfile
+│       └── nginx.conf
+│
+├── Jenkinsfile                 # CI pipeline definíció
+└── README.md
 
----
+## Alkalmazás funkciói (Code)
 
-## Alkalmazás rövid leírása
+A backend egy egyszerű REST API-t valósít meg:
 
-Az alkalmazás egy egyszerű REST backend, amely:
+Endpoint	  Leírás
 
-- HTTP szervert indít **Node.js + Express** segítségével
-- rendelkezik egy `/health` végponttal az alkalmazás állapotának ellenőrzésére
-- egy egyszerű feladatkezelő API-t biztosít (`/tasks`)
-- az alkalmazás alapértelmezett portja: **8080**
+/health	    Health check
+/tasks	    Példa adat visszaadása
+/metrics	  Prometheus kompatibilis metrikák
 
-A feladatok ideiglenesen memóriában kerülnek tárolásra,  
-adatbázis használata nem része a beadandónak.
+Az alkalmazás Jest egységtesztekkel rendelkezik, amelyek a CI pipeline részeként automatikusan lefutnak.
 
----
+## Build & Test – CI pipeline
+Jenkins szerepe
 
-## `.gitignore` fájl szerepe
+A projekt CI részét Jenkins Pipeline valósítja meg Docker konténerben futó Jenkins segítségével.
 
-A `.gitignore` fájl segítségével megadhatók azok a fájlok és könyvtárak,
-amelyeket **nem szeretnénk verziókezelés alá vonni**.
+A pipeline lépései:
 
-A projektben a `.gitignore` az alábbiakat tartalmazza:
+1. Forráskód letöltése GitHubról
+2. Függőségek telepítése (npm ci)
+3. Egységtesztek futtatása (npm test)
+4. Dokumentációs jellegű Docker és Kubernetes lépések naplózása
 
-- `node_modules/`  
-  A Node.js függőségek mappája, amely automatikusan generálódik (`npm install`).
-  Mérete nagy, platformfüggő, ezért nem kerül feltöltésre GitHubra.
+  Email értesítés (Mailtrap):
+    A pipeline sikeres lefutás után email értesítést küld Mailtrap SMTP-n keresztül, amely demonstrálja a CI feedback mechanizmust.
 
-- `.env`  
-  Környezeti változók (pl. jelszavak, API kulcsok) tárolására szolgál.
-  Biztonsági okokból nem kerülhet nyilvános repository-ba.
+## Release & Deploy – Kubernetes
 
-- `.DS_Store`  
-  Operációs rendszer által generált fájl, amely nem része a projektnek.
+Konténerizálás
+  Az alkalmazás Docker image-be van csomagolva
+  A Docker image betöltésre kerül a Minikube clusterbe
 
-A `.gitignore` használata biztosítja a repository **tisztaságát,
-biztonságát és hordozhatóságát**.
+Kubernetes deployment
+A projekt Kubernetes része a következőket tartalmazza:
+  Deployment: alkalmazás futtatása podban
+  Service: alkalmazás elérhetővé tétele
+  Minikube használata lokális clusterként
 
----
+## Monitor & Feedback – Prometheus
 
-## `.dockerignore` fájl szerepe
+A projekt tartalmaz egy Kubernetesben futó Prometheus példányt, amely:
+  gyűjti az alkalmazás /metrics endpointján publikált adatokat
+  lehetőséget ad időalapú metrikák lekérdezésére
 
-A `.dockerignore` fájl hasonló szerepet tölt be, mint a `.gitignore`,
-de **a Docker image buildelési folyamata során** érvényesül.
+## NGINX – Reverse proxy
 
-A projektben a `.dockerignore` az alábbi elemeket zárja ki:
+Az NGINX egy külön Docker konténerben fut, és:
+  reverse proxyként továbbítja a kéréseket a backend felé
+  demonstrálja az API Gateway / edge komponens szerepét
 
-- `node_modules/`  
-  A Docker image építése során a függőségek újratelepítésre kerülnek,
-  ezért nem szükséges a host gép `node_modules` mappáját másolni az image-be.
+Elérhető port: http://localhost:8082
 
-- `npm-debug.log`  
-  Fejlesztési log fájl, amely nem része az alkalmazásnak.
+##  Használt tool-ok
+Tool	                  Szerep
 
-A `.dockerignore` használatának előnyei:
-- kisebb Docker image méret,
-- gyorsabb build folyamat,
-- felesleges fájlok kizárása a konténerből.
+Jenkins	                CI pipeline, build & test
+Kubernetes (Minikube)	  Orchestration, deployment
+Prometheus	            Monitorozás
+NGINX	                  Reverse proxy
+Mailtrap	              Email értesítés
 
----
 
-## Alkalmazás futtatása lokálisan (Docker nélkül)
+## STEPS TO RUN!!!
 
-### Követelmények
-- Node.js (LTS verzió)
-- npm
-
-### Indítás
-
-```bash
-cd app
-npm install
-npm run dev
-
-##Az alkalmazás elérhető:
-http://localhost:8080/health
-
-## Kubernetes (Minikube) futtatás
-
-A TaskBoard backend Docker image-e Kubernetes környezetben is futtatható
-**Minikube** segítségével. A Minikube lokális Kubernetes clusterként szolgál
-Windows környezetben, Docker driver használatával.
-
-### Követelmények
-- Docker Desktop (Windows)
-- Minikube
-- kubectl
-
----
-
-### Minikube indítása
-
-A Kubernetes cluster indítása Docker driverrel:
-
-```bash
-minikube start --driver=docker --cpus=2 --memory=4096
-Az indítás után ellenőrizhető az állapot:
-
-bash
-Copy code
-minikube status
-kubectl get nodes
-Docker image betöltése Minikube-ba
-Mivel az alkalmazás Docker image-e lokálisan lett buildelve, ezért azt
-explicit módon be kell tölteni a Minikube image tárába:
-
-bash
-Copy code
-minikube image load taskboard-backend:1.0.0
-Ez biztosítja, hogy a Kubernetes Deployment ne próbálja külső registryből
-letölteni az image-et.
-
-Deployment és Service létrehozása
-A Kubernetes erőforrások YAML fájlokban kerültek definiálásra
-a deploy/kubernetes mappában.
-
-Deployment létrehozása:
-
-bash
-Copy code
-kubectl apply -f deploy/kubernetes/deployment.yaml
-Service létrehozása:
-
-bash
-Copy code
-kubectl apply -f deploy/kubernetes/services.yaml
-Ellenőrzés:
-
-bash
-Copy code
-kubectl get pods
-kubectl get svc
-A pod állapota Running, a Service típusa NodePort.
-
-Alkalmazás elérése Kubernetesből
-Windows + Docker driver használata esetén a NodePort közvetlen
-localhost:<port> elérés nem mindig működik, ezért a Minikube
-lokális alagutat (tunnel) hoz létre.
-
-Az alkalmazás elérése:
-
-bash
-Copy code
-minikube service taskboard-backend-service
-A parancs kimenetében megjelenik egy URL, például:
-
-cpp
-Copy code
-http://127.0.0.1:18944
-Az alkalmazás állapotának ellenőrzése:
-
-arduino
-Copy code
-http://127.0.0.1:18944/health
-Sikeres válasz:
-
-json
-Copy code
-{"status":"ok"}
-Fontos: a terminált nyitva kell hagyni, amíg a minikube service parancs fut,
-mivel ez biztosítja a tunnel működését.
-
-Megjegyzés a imagePullPolicy beállításhoz
-A Kubernetes Deployment-ben az alábbi beállítás szerepel:
-
-yaml
-Copy code
-imagePullPolicy: Never
-Ez azért szükséges, mert a Docker image lokálisan készült, és nem egy
-külső Docker registry-ből kerül letöltésre.
-
-## Alkalmazás futtatása Docker konténerben
-
-A backend alkalmazás Docker image-be van csomagolva, így konténerben is
-egyszerűen futtatható.
-
-### Image buildelése
-
-A projekt gyökerében (ahol a `Dockerfile` található):
-
-```bash
+-------DOCKER---------
+git clone https://github.com/Blasterjack00/felho-devops-beadando.git
+cd felho-devops-beadando
 cd app
 docker build -t taskboard-backend:1.0.0 .
-Ez létrehoz egy taskboard-backend:1.0.0 nevű helyi image-et.
+docker run -p 8080:8080 taskboard-backend
+http://localhost:8080/health vagy http://localhost:8080/tasks vagy http://localhost:8080/metrics
 
-Konténer futtatása
-bash
-Copy code
-docker run -d -p 8080:8080 --name taskboard-backend taskboard-backend:1.0.0
-Ezzel a backend egy Docker konténerben indul el, a host gép felől az
-alábbi címen érhető el:
+-------JENKINS---------
+In a new terminal
+cd felho-devops-beadando
+docker run -d -p 8081:8080 -p 50000:50000 --name jenkins -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
+docker exec -u root -it jenkins bash
+apt-get update
+apt-get install -y nodejs npm
+exit
+http://localhost:8081
 
-Healthcheck: http://localhost:8080/health
+New Item > Pipeline
+Pipeline > Definition > Pipeline script from SCM
+SCM > Git
+Repository URL > https://github.com/Blasterjack00/felho-devops-beadando.git
+Credentials > None
+Branch Specifier (blank for 'any') > */main
+Script Path > Jenkinsfile
 
-Task API: http://localhost:8080/tasks
+Most mehet a Build Now
 
-A konténer leállítása:
+##
+Ez a sikeres Jenkins build azt bizonyítja, hogy a projekt automatizált módon, emberi beavatkozás nélkül:
+	lefordul / felkészül,
+	a függőségek rendben vannak,
+	az egységtesztek lefutnak,
+	és a build állapota reprodukálható bármely Jenkins környezetben.
+##
 
-bash
-Copy code
-docker stop taskboard-backend
-docker rm taskboard-backend
-perl
-Copy code
-
-#### Kubernetes / Minikube futtatás
-
-```md
-## Futtatás Kubernetes (Minikube) környezetben
-
-A beadandó része, hogy az alkalmazás Kubernetesben is fusson. Ehhez
-Minikube-ot, Docker drivert és két manifestet használunk:
-
-- `deploy/kubernetes/deployment.yaml`
-- `deploy/kubernetes/services.yaml`
-
-### Minikube indítása (Windows + Docker driver)
-
-```bash
+-------KUBERNETES---------
+in a new terminal
 minikube start --driver=docker --cpus=2 --memory=4096
-Ezzel létrejön egy egy-node-os Kubernetes cluster Dockerben.
-
-Ellenőrzés:
-
-bash
-Copy code
-kubectl get nodes
-kubectl get pods -A
-Docker image betöltése Minikube-ba
-A korábban elkészített taskboard-backend:1.0.0 image-et be kell
-tölteni a Minikube saját Docker daemonjába:
-
-bash
-Copy code
+minikube status
+(ha valamiért nem running akkor minikube delete és ujra minikube start --driver=docker --cpus=2 --memory=4096)
+kubectl get nodes > ha Ready mehetünk tovább
 minikube image load taskboard-backend:1.0.0
-Deployment és Service létrehozása
-A projekt gyökeréből:
-
-bash
-Copy code
+cd .. (ha nem a felho-devops-beadando mappában vagyunk)
 kubectl apply -f deploy/kubernetes/deployment.yaml
 kubectl apply -f deploy/kubernetes/services.yaml
-Ellenőrzés:
-
-bash
-Copy code
-kubectl get pods
-kubectl get svc
-A taskboard-backend podnak Running állapotban kell lennie, a
-taskboard-backend-service pedig egy NodePort típusú service.
-
-Az alkalmazás elérése Minikube-ból
-Minikube-on a NodePort service-t egy lokális tunnel segítségével
-érjük el:
-
-bash
-Copy code
+kubectl get pods > taskboard-backend-xxxxx   Running látszódik
+kubectl get services
 minikube service taskboard-backend-service
-Ez megnyit egy böngészőt, illetve kiír egy URL-t, például:
 
-http://127.0.0.1:19765
+-------PROMETHEUS---------
+minikube addons enable metrics-server
+kubectl create namespace monitoring
+kubectl apply -f deploy/monitoring/prometheus-config.yaml
+kubectl apply -f deploy/monitoring/prometheus-deployment.yaml
+kubectl apply -f deploy/monitoring/prometheus-service.yaml
+kubectl get pods -n monitoring
+minikube service prometheus-service -n monitoring
 
-A healthcheck és az API itt érhető el:
+##
+Az alkalmazás Prometheus kompatibilis metrikákat publikál a /metrics endpointon,
+amelyeket egy Kubernetesben futó Prometheus gyűjt és vizualizál.”
+##
 
-Healthcheck: http://127.0.0.1:19765/health
-
-Task API: http://127.0.0.1:19765/tasks
-
-Fontos: minden egyes futtatásnál (minikube service ...) új, véletlen
-portot kaphatunk (pl. 18944, 19765, stb.).
-Ha a parancsot Ctrl + C-vel leállítjuk, a tunnel megszűnik, és az
-előző URL nem lesz elérhető – újra futtatva a parancsot új URL-t kapunk.
+-------NGINX---------
+docker network create taskboard-net
+cd app
+docker build -t taskboard-backend:1.0.0 .
+cd ..
+docker run -d --name taskboard-backend --network taskboard-net taskboard-backend:1.0.0
+docker build -t taskboard-nginx:1.0.0 -f deploy/nginx/Dockerfile .
+docker run -d --name taskboard-nginx --network taskboard-net -p 8082:80 taskboard-nginx:1.0.0
+http://localhost:8082/health vagy http://localhost:8082/tasks vagy http://localhost:8082/metrics
